@@ -50,18 +50,30 @@ const float encoderSlots = 540; // # of slots in encoder wheel
 
 // component uses SDA and SDL pins 20 and 21
 
+#include <basicMPU6050.h>
+
 // ===== STARTER BUTTON =====
 
 #define starter 46 // brown
 // other wire goes to GND
 
-#include <basicMPU6050.h>
+// ===== ENCODERS =====
+
+long frPos = -999;
+long flPos = -999;
+long blPos = -999;
+long brPos = -999;
+
 #include <Encoder.h>
 
 Encoder frEnc(frSA, frSB);
 Encoder flEnc(flSA, flSB);
 Encoder blEnc(blSA, blSB);
 Encoder brEnc(brSA, brSB);
+
+// ===== DECLARATIONS =====
+void setMtrSpd(int mtrSpd);
+int cmToStps(float cm);
 
 void setup() {
   // Configure pin modes
@@ -123,20 +135,26 @@ void loop() {
 void testDrive() {
   Serial.println("starting test drive");
 
-  fwd(1000);
-  strLft(1000);
+  fwd(cmToStps(100));
+  
+  /*strLft(1000);
   bkwd(1000);
   strRgt(1000);
   rotLft(2000);
   rotRgt(2000);
-  stp();
+  stp();*/
 }
 
-void fwd(int seconds) {
+void fwd(int stps) {
   Serial.print("forward for ");
-  Serial.print(seconds);
-  Serial.println(" seconds");
+  Serial.print(stps);
+  Serial.println(" encoder steps");
   setMtrSpd(0);
+  frEnc.write(0);
+  flEnc.write(0);
+  blEnc.write(0);
+  brEnc.write(0);
+  Serial.println("zeroed");
 
   digitalWrite(fin1, LOW); // fr
   digitalWrite(fin2, HIGH);
@@ -147,9 +165,61 @@ void fwd(int seconds) {
   digitalWrite(bin2, LOW);
   digitalWrite(bin3, HIGH); // br
   digitalWrite(bin4, LOW);
+  Serial.println("direction set");
   setMtrSpd(motorSpeed);
+  Serial.println("going");
 
-  delay(seconds);
+  while (stps > frPos || stps > flPos || stps > blPos || stps > brPos) {
+    long newFrPos = frEnc.read();
+    long newFlPos = flEnc.read();
+    long newBlPos = blEnc.read();
+    long newBrPos = brEnc.read();
+    if (frPos != newFrPos) {
+      if (stps <= newFrPos) {
+        Serial.println("stopping fr");
+        analogWrite(fenA, 0);
+      }
+      Serial.print("updating fr from ");
+      Serial.print(frPos);
+      Serial.print(" to ");
+      Serial.println(newFrPos);
+      frPos = newFrPos;
+    }
+    if (flPos != newFlPos) {
+      if (stps <= newFlPos) {
+        Serial.println("stopping fl");
+        analogWrite(fenB, 0);
+      }
+      Serial.print("updating fl from ");
+      Serial.print(flPos);
+      Serial.print(" to ");
+      Serial.println(newFlPos);
+      flPos = newFlPos;
+    }
+    if (blPos != newBlPos) {
+      if (stps <= newBlPos) {
+        Serial.println("stopping bl");
+        analogWrite(benA, 0);
+      }
+      Serial.print("updating bl from ");
+      Serial.print(blPos);
+      Serial.print(" to ");
+      Serial.println(newBlPos);
+      blPos = newBlPos;
+    }
+    if (brPos != newBrPos) {
+      if (stps <= newBrPos) {
+        Serial.println("stopping br");
+        analogWrite(benB, 0);
+      }
+      Serial.print("updating br from ");
+      Serial.print(brPos);
+      Serial.print(" to ");
+      Serial.println(newBrPos);
+      brPos = newBrPos;
+    }
+    Serial.println("done");
+  }
 }
 
 void bkwd(int seconds) {
@@ -268,8 +338,8 @@ void stp() {
 }
 
 void setMtrSpd(int mtrSpd) {
-  Serial.print("setting motor speed to ");
-  Serial.print(mtrSpd);
+  Serial.print("setting all motor speeds to ");
+  Serial.println(mtrSpd);
   
   analogWrite(fenA, mtrSpd);
   analogWrite(fenB, mtrSpd);
