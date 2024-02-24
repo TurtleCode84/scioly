@@ -1,6 +1,13 @@
+// ===== SCRIPT =====
+void runScript() {
+  testDrive();
+}
+
 // ===== CONFIGURATIONS =====
 
 #define motorSpeed 255 // works fine at 200, best at 255
+const float wheelDiameter = 68.0; // mm
+const float encoderSlots = 540; // # of slots in encoder wheel
 
 // ===== FRONT MOTOR DRIVER =====
 
@@ -91,12 +98,9 @@ void setup() {
   digitalWrite(bin3, LOW);
   digitalWrite(bin4, LOW);
 
-  // Set motor speeds
+  // Set initial motor speeds
 
-  analogWrite(fenA, motorSpeed);
-  analogWrite(fenB, motorSpeed);
-  analogWrite(benA, motorSpeed);
-  analogWrite(benB, motorSpeed);
+  setMtrSpd(motorSpeed);
 
   Serial.begin(38400);
 
@@ -108,7 +112,7 @@ void setup() {
 
   Serial.println("button pressed");
   digitalWrite(LED_BUILTIN, HIGH);
-  testDrive();
+  runScript();
 }
 
 void loop() {
@@ -117,46 +121,168 @@ void loop() {
 }
 
 void testDrive() {
-  Serial.println("driving");
+  Serial.println("starting test drive");
 
-  // forward
-  
-  digitalWrite(fin1, LOW); // front right
+  fwd(1000);
+  strLft(1000);
+  bkwd(1000);
+  strRgt(1000);
+  rotLft(2000);
+  rotRgt(2000);
+  stp();
+}
+
+void fwd(int seconds) {
+  Serial.print("forward for ");
+  Serial.print(seconds);
+  Serial.println(" seconds");
+  setMtrSpd(0);
+
+  digitalWrite(fin1, LOW); // fr
   digitalWrite(fin2, HIGH);
-  digitalWrite(fin3, LOW); // front left
+  digitalWrite(fin3, LOW); // fl
   digitalWrite(fin4, HIGH);
 
-  digitalWrite(bin1, HIGH); // back left
+  digitalWrite(bin1, HIGH); // bl
   digitalWrite(bin2, LOW);
-  digitalWrite(bin3, HIGH); // back right
+  digitalWrite(bin3, HIGH); // br
   digitalWrite(bin4, LOW);
+  setMtrSpd(motorSpeed);
 
-  delay(5000);
+  delay(seconds);
+}
 
-  // strafe left
+void bkwd(int seconds) {
+  Serial.print("backward for ");
+  Serial.print(seconds);
+  Serial.println(" seconds");
+  setMtrSpd(0);
 
-  digitalWrite(fin1, LOW); // front right
-  digitalWrite(fin2, HIGH);
-  digitalWrite(fin3, HIGH); // front left
+  digitalWrite(fin1, HIGH); // fr
+  digitalWrite(fin2, LOW);
+  digitalWrite(fin3, HIGH); // fl
   digitalWrite(fin4, LOW);
 
-  digitalWrite(bin1, HIGH); // back left
-  digitalWrite(bin2, LOW);
-  digitalWrite(bin3, LOW); // back right
+  digitalWrite(bin1, LOW); // bl
+  digitalWrite(bin2, HIGH);
+  digitalWrite(bin3, LOW); // br
   digitalWrite(bin4, HIGH);
+  setMtrSpd(motorSpeed);
 
-  delay(5000);
+  delay(seconds);
+}
+
+void strLft(int seconds) {
+  Serial.print("strafe left for ");
+  Serial.print(seconds);
+  Serial.println(" seconds");
+  setMtrSpd(0);
   
-  // forward
-  
-  digitalWrite(fin1, LOW); // front right
+  digitalWrite(fin1, LOW); // fr
   digitalWrite(fin2, HIGH);
-  digitalWrite(fin3, LOW); // front left
+  digitalWrite(fin3, HIGH); // fl
+  digitalWrite(fin4, LOW);
+
+  digitalWrite(bin1, HIGH); // bl
+  digitalWrite(bin2, LOW);
+  digitalWrite(bin3, LOW); // br
+  digitalWrite(bin4, HIGH);
+  setMtrSpd(motorSpeed);
+
+  delay(seconds);
+}
+
+void strRgt(int seconds) {
+  Serial.print("strafe right for ");
+  Serial.print(seconds);
+  Serial.println(" seconds");
+  setMtrSpd(0);
+  
+  digitalWrite(fin1, HIGH); // fr
+  digitalWrite(fin2, LOW);
+  digitalWrite(fin3, LOW); // fl
   digitalWrite(fin4, HIGH);
 
-  digitalWrite(bin1, HIGH); // back left
-  digitalWrite(bin2, LOW);
-  digitalWrite(bin3, HIGH); // back right
+  digitalWrite(bin1, LOW); // bl
+  digitalWrite(bin2, HIGH);
+  digitalWrite(bin3, HIGH); // br
   digitalWrite(bin4, LOW);
+  setMtrSpd(motorSpeed);
 
+  delay(seconds);
+}
+
+void rotLft(int seconds) {
+  Serial.print("rotate to left for ");
+  Serial.print(seconds);
+  Serial.println(" seconds");
+  setMtrSpd(0);
+  
+  digitalWrite(fin1, LOW); // fr
+  digitalWrite(fin2, HIGH);
+  digitalWrite(fin3, HIGH); // fl
+  digitalWrite(fin4, LOW);
+
+  digitalWrite(bin1, LOW); // bl
+  digitalWrite(bin2, HIGH);
+  digitalWrite(bin3, HIGH); // br
+  digitalWrite(bin4, LOW);
+  setMtrSpd(motorSpeed);
+
+  delay(seconds);
+}
+
+void rotRgt(int seconds) {
+  Serial.print("rotate to right for ");
+  Serial.print(seconds);
+  Serial.println(" seconds");
+  setMtrSpd(0);
+  
+  digitalWrite(fin1, HIGH); // fr
+  digitalWrite(fin2, LOW);
+  digitalWrite(fin3, LOW); // fl
+  digitalWrite(fin4, HIGH);
+
+  digitalWrite(bin1, HIGH); // bl
+  digitalWrite(bin2, LOW);
+  digitalWrite(bin3, LOW); // br
+  digitalWrite(bin4, HIGH);
+  setMtrSpd(motorSpeed);
+
+  delay(seconds);
+}
+
+void stp() {
+  Serial.println("stopping");
+  setMtrSpd(0);
+
+  digitalWrite(fin1, LOW); // fr
+  digitalWrite(fin2, LOW);
+  digitalWrite(fin3, LOW); // fl
+  digitalWrite(fin4, LOW);
+
+  digitalWrite(bin1, LOW); // bl
+  digitalWrite(bin2, LOW);
+  digitalWrite(bin3, LOW); // br
+  digitalWrite(bin4, LOW);
+}
+
+void setMtrSpd(int mtrSpd) {
+  Serial.print("setting motor speed to ");
+  Serial.print(mtrSpd);
+  
+  analogWrite(fenA, mtrSpd);
+  analogWrite(fenB, mtrSpd);
+  analogWrite(benA, mtrSpd);
+  analogWrite(benB, mtrSpd);
+}
+
+int cmToStps(float cm) {
+  int calc;
+  float circ = (wheelDiameter * 3.14) / 10; // diameter converted to circ cm
+  float cmPerStp = circ / encoderSlots;
+  float temp = cm / cmPerStp;
+  calc = (int) temp; // convert to int (not rounded)
+  
+  return calc;
 }
