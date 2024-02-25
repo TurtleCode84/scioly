@@ -6,8 +6,8 @@ void runScript() {
 // ===== CONFIGURATIONS =====
 
 #define motorSpeed 255 // works fine at 200, best at 255
-const float wheelDiameter = 68.0; // mm
-const float encoderSlots = 540; // # of slots in encoder wheel
+#define wheelCirc 68 // mm
+#define encoderPpr 540 // complete turn
 
 // ===== FRONT MOTOR DRIVER =====
 
@@ -59,21 +59,27 @@ const float encoderSlots = 540; // # of slots in encoder wheel
 
 // ===== ENCODERS =====
 
-long frPos = -999;
-long flPos = -999;
-long blPos = -999;
-long brPos = -999;
+volatile int frPos = 0;
+volatile int flPos = 0;
+volatile int blPos = 0;
+volatile int brPos = 0;
 
-#include <Encoder.h>
+void pulseFr() { frPos++; }
+void pulseFl() { flPos++; }
+void pulseBl() { blPos++; }
+void pulseBr() { brPos++; }
+
+/*#include <Encoder.h>
 
 Encoder frEnc(frSA, frSB);
 Encoder flEnc(flSA, flSB);
 Encoder blEnc(blSA, blSB);
-Encoder brEnc(brSA, brSB);
+Encoder brEnc(brSA, brSB);*/
 
 // ===== DECLARATIONS =====
 void setMtrSpd(int mtrSpd);
 int cmToStps(float cm);
+void fwd(int stps);
 
 void setup() {
   // Configure pin modes
@@ -114,6 +120,12 @@ void setup() {
 
   setMtrSpd(motorSpeed);
 
+  // Attach interrupts
+  attachInterrupt(digitalPinToInterrupt(frSA), pulseFr, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(flSA), pulseFl, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(blSA), pulseBl, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(brSA), pulseBr, CHANGE);
+
   Serial.begin(38400);
 
   Serial.println("waiting for button press");
@@ -135,7 +147,7 @@ void loop() {
 void testDrive() {
   Serial.println("starting test drive");
 
-  fwd(cmToStps(100));
+  fwd(1080);
   
   /*strLft(1000);
   bkwd(1000);
@@ -150,10 +162,10 @@ void fwd(int stps) {
   Serial.print(stps);
   Serial.println(" encoder steps");
   setMtrSpd(0);
-  frEnc.write(0);
-  flEnc.write(0);
-  blEnc.write(0);
-  brEnc.write(0);
+  frPos = 0;
+  flPos = 0;
+  blPos = 0;
+  brPos = 0;
   Serial.println("zeroed");
 
   digitalWrite(fin1, LOW); // fr
@@ -166,60 +178,40 @@ void fwd(int stps) {
   digitalWrite(bin3, HIGH); // br
   digitalWrite(bin4, LOW);
   Serial.println("direction set");
-  setMtrSpd(motorSpeed);
   Serial.println("going");
 
   while (stps > frPos || stps > flPos || stps > blPos || stps > brPos) {
-    long newFrPos = frEnc.read();
-    long newFlPos = flEnc.read();
-    long newBlPos = blEnc.read();
-    long newBrPos = brEnc.read();
-    if (frPos != newFrPos) {
-      if (stps <= newFrPos) {
-        Serial.println("stopping fr");
-        analogWrite(fenA, 0);
-      }
-      Serial.print("updating fr from ");
-      Serial.print(frPos);
-      Serial.print(" to ");
-      Serial.println(newFrPos);
-      frPos = newFrPos;
+    if (flPos >= frPos || blPos >= frPos || brPos >= frPos) {
+      analogWrite(fenA, motorSpeed);
+    } else {
+      analogWrite(fenA, 0);
     }
-    if (flPos != newFlPos) {
-      if (stps <= newFlPos) {
-        Serial.println("stopping fl");
-        analogWrite(fenB, 0);
-      }
-      Serial.print("updating fl from ");
-      Serial.print(flPos);
-      Serial.print(" to ");
-      Serial.println(newFlPos);
-      flPos = newFlPos;
+    if (frPos >= flPos && blPos >= flPos && brPos >= flPos) {
+      analogWrite(fenB, motorSpeed);
+    } else {
+      analogWrite(fenB, 0);
     }
-    if (blPos != newBlPos) {
-      if (stps <= newBlPos) {
-        Serial.println("stopping bl");
-        analogWrite(benA, 0);
-      }
-      Serial.print("updating bl from ");
-      Serial.print(blPos);
-      Serial.print(" to ");
-      Serial.println(newBlPos);
-      blPos = newBlPos;
+    if (frPos >= blPos && flPos >= blPos && brPos >= blPos) {
+      analogWrite(benA, motorSpeed);
+    } else {
+      analogWrite(benA, 0);
     }
-    if (brPos != newBrPos) {
-      if (stps <= newBrPos) {
-        Serial.println("stopping br");
-        analogWrite(benB, 0);
-      }
-      Serial.print("updating br from ");
-      Serial.print(brPos);
-      Serial.print(" to ");
-      Serial.println(newBrPos);
-      brPos = newBrPos;
+    if (frPos >= brPos && flPos >= brPos && blPos >= brPos) {
+      analogWrite(benB, motorSpeed);
+    } else {
+      analogWrite(benB, 0);
     }
-    Serial.println("done");
+    Serial.println(frPos);
+    Serial.println(flPos);
+    Serial.println(blPos);
+    Serial.println(brPos);
+    Serial.println();
   }
+  setMtrSpd(0);
+  frPos = 0;
+  flPos = 0;
+  blPos = 0;
+  brPos = 0;
 }
 
 void bkwd(int seconds) {
@@ -349,8 +341,8 @@ void setMtrSpd(int mtrSpd) {
 
 int cmToStps(float cm) {
   int calc;
-  float circ = (wheelDiameter * 3.14) / 10; // diameter converted to circ cm
-  float cmPerStp = circ / encoderSlots;
+  float circ = (wheelCirc * 3.14159) / 10; // diameter converted to circ cm
+  float cmPerStp = circ / encoderPpr;
   float temp = cm / cmPerStp;
   calc = (int) temp; // convert to int (not rounded)
   
