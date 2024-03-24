@@ -6,7 +6,9 @@ void drive(int stps, char dir = 'f');
 // ===== SCRIPT =====
 
 void runScript() {
-  drive(cmToStps(50), 'l');
+  //drive(cmToStps(50), 'l');
+  drive(degToStps(90), 'p');
+  drive(degToStps(90), 's');
 }
 
 // ===== CONFIGURATIONS =====
@@ -57,7 +59,28 @@ void runScript() {
 
 // component uses SDA and SDL pins 20 and 21
 
-#include <basicMPU6050.h>
+#include "I2Cdev.h"
+#include "MPU6050_6Axis_MotionApps20.h"
+
+MPU6050 mpu;
+
+#define mpuInterruptPin 23  // using a regular pin because no interrupt-capable pins available
+
+// MPU control/status vars
+bool dmpReady = false;  // set true if DMP init was successful
+uint8_t mpuIntStatus;   // holds actual interrupt status byte from MPU
+uint8_t devStatus;      // return status after each device operation (0 = success, !0 = error)
+uint16_t packetSize;    // expected DMP packet size (default is 42 bytes)
+uint16_t fifoCount;     // count of all bytes currently in FIFO
+uint8_t fifoBuffer[64]; // FIFO storage buffer
+
+// orientation/motion vars
+Quaternion q;           // [w, x, y, z]         quaternion container
+VectorFloat gravity;    // [x, y, z]            gravity vector
+float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
+
+volatile bool mpuInterrupt = false; // indicates whether MPU interrupt pin has changed
+void dmpDataReady() { mpuInterrupt = true; }
 
 // ===== STARTER BUTTON =====
 
@@ -76,19 +99,20 @@ void pulseFl() { flPos++; }
 void pulseBl() { blPos++; }
 void pulseBr() { brPos++; }
 
-/*#include <Encoder.h>
-
-Encoder frEnc(frSA, frSB);
-Encoder flEnc(flSA, flSB);
-Encoder blEnc(blSA, blSB);
-Encoder brEnc(brSA, brSB);*/
-
 int cmToStps(float cm) {
   int calc;
   float circ = (wheelRadius * 3.14159265) / 10; // diameter converted to circ cm
   float cmPerStp = circ / encoderPpr;
   float temp = cm / cmPerStp;
   calc = (int) temp; // convert to int (not rounded)
+  
+  return calc;
+}
+
+int degToStps(float deg) {
+  int calc;
+  float degToCm = deg / 2.857142857; // based on cm of 31.5 for 90 degrees
+  calc = cmToStps(degToCm);
   
   return calc;
 }
@@ -163,6 +187,30 @@ void drive(int stps, char dir = 'f') {
     digitalWrite(bin3, LOW); // br
     digitalWrite(bin4, HIGH);
     
+  } else if (dir == 's') {
+
+    digitalWrite(fin1, HIGH); // fr
+    digitalWrite(fin2, LOW);
+    digitalWrite(fin3, LOW); // fl
+    digitalWrite(fin4, HIGH);
+
+    digitalWrite(bin1, HIGH); // bl
+    digitalWrite(bin2, LOW);
+    digitalWrite(bin3, LOW); // br
+    digitalWrite(bin4, HIGH);
+    
+  } else if (dir == 'p') {
+
+    digitalWrite(fin1, LOW); // fr
+    digitalWrite(fin2, HIGH);
+    digitalWrite(fin3, HIGH); // fl
+    digitalWrite(fin4, LOW);
+
+    digitalWrite(bin1, LOW); // bl
+    digitalWrite(bin2, HIGH);
+    digitalWrite(bin3, HIGH); // br
+    digitalWrite(bin4, LOW);
+    
   }
   Serial.println("direction set");
   Serial.println("going");
@@ -201,46 +249,6 @@ void drive(int stps, char dir = 'f') {
   brPos = 0;
 }
 
-/*void rotLft(int seconds) {
-  Serial.print("rotate to left for ");
-  Serial.print(seconds);
-  Serial.println(" seconds");
-  setMtrSpd(0);
-  
-  digitalWrite(fin1, LOW); // fr
-  digitalWrite(fin2, HIGH);
-  digitalWrite(fin3, HIGH); // fl
-  digitalWrite(fin4, LOW);
-
-  digitalWrite(bin1, LOW); // bl
-  digitalWrite(bin2, HIGH);
-  digitalWrite(bin3, HIGH); // br
-  digitalWrite(bin4, LOW);
-  setMtrSpd(motorSpeed);
-
-  delay(seconds);
-}
-
-void rotRgt(int seconds) {
-  Serial.print("rotate to right for ");
-  Serial.print(seconds);
-  Serial.println(" seconds");
-  setMtrSpd(0);
-  
-  digitalWrite(fin1, HIGH); // fr
-  digitalWrite(fin2, LOW);
-  digitalWrite(fin3, LOW); // fl
-  digitalWrite(fin4, HIGH);
-
-  digitalWrite(bin1, HIGH); // bl
-  digitalWrite(bin2, LOW);
-  digitalWrite(bin3, LOW); // br
-  digitalWrite(bin4, HIGH);
-  setMtrSpd(motorSpeed);
-
-  delay(seconds);
-}*/
-
 void stp() {
   Serial.println("stopping");
   setMtrSpd(0);
@@ -270,8 +278,6 @@ void testDrive() {
 void setup() {
   // Configure pin modes
   
-  // gyro and encoder pin modes are handled by libraries
-
   pinMode(fenA, OUTPUT);
   pinMode(fin1, OUTPUT);
   pinMode(fin2, OUTPUT);
@@ -289,6 +295,50 @@ void setup() {
   pinMode(starter, INPUT_PULLUP);
 
   pinMode(LED_BUILTIN, OUTPUT);
+
+  // Intialize MPU
+
+  Serial.println("Initializing MPU...");
+  mpu.initialize();
+  pinMode(mpuInterruptPin, INPUT);
+
+  Serial.println("Testing I2C connection...");
+  Serial.println(mpu.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
+
+  Serial.println("Initializing MPU DMP...");
+  devStatus = mpu.dmpInitialize();
+
+  // gyro offsets, scaled for min sensitivity
+  mpu.setXGyroOffset(220);
+  mpu.setYGyroOffset(76);
+  mpu.setZGyroOffset(-85);
+  mpu.setZAccelOffset(1788); // 1688 factory default for test chip
+    
+  if (devStatus == 0) {
+      // calibration
+      mpu.CalibrateAccel(6);
+      mpu.CalibrateGyro(6);
+      mpu.PrintActiveOffsets();
+      // turn on the DMP, now that it's ready
+      Serial.println("Enabling MPU DMP...");
+      mpu.setDMPEnabled(true);
+
+      attachInterrupt(INTERRUPT_PIN, dmpDataReady, CHANGE);
+      mpuIntStatus = mpu.getIntStatus();
+
+      Serial.println("MPU DMP ready! Waiting for first interrupt...");
+      dmpReady = true;
+
+      // get expected DMP packet size for later comparison
+      packetSize = mpu.dmpGetFIFOPacketSize();
+  } else {
+      // error
+      // 1 = initial memory load failed
+      // 2 = DMP configuration updates failed
+      Serial.print("MPU DMP initialization failed (code ");
+      Serial.print(devStatus);
+      Serial.println(")");
+  }
 
   // Initialize motor states
 
@@ -328,6 +378,12 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-
+  if (dmpReady && mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) { // get the latest packet 
+    // display Euler angles in degrees
+    mpu.dmpGetQuaternion(&q, fifoBuffer);
+    mpu.dmpGetGravity(&gravity, &q);
+    mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+    Serial.print("yaw:\t");
+    Serial.println(ypr[2] * 180/M_PI);
+  }
 }
