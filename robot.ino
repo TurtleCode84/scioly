@@ -6,9 +6,9 @@ void drive(int stps, char dir = 'f');
 // ===== SCRIPT =====
 
 void runScript() {
-  //drive(cmToStps(50), 'l');
+  drive(cmToStps(50), 'f');
   drive(degToStps(90), 'p');
-  drive(degToStps(90), 's');
+  //drive(degToStps(90), 's');
 }
 
 // ===== CONFIGURATIONS =====
@@ -270,9 +270,7 @@ void testDrive() {
   //drive(2454.55);
   drive(cmToStps(50));
   
-  /*rotLft(2000);
-  rotRgt(2000);
-  stp();*/
+  //stp();
 }
 
 void setup() {
@@ -297,6 +295,8 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
 
   // Intialize MPU
+
+  Serial.begin(38400);
 
   Serial.println("Initializing MPU...");
   mpu.initialize();
@@ -323,7 +323,7 @@ void setup() {
       Serial.println("Enabling MPU DMP...");
       mpu.setDMPEnabled(true);
 
-      attachInterrupt(INTERRUPT_PIN, dmpDataReady, CHANGE);
+      attachInterrupt(mpuInterruptPin, dmpDataReady, CHANGE);
       mpuIntStatus = mpu.getIntStatus();
 
       Serial.println("MPU DMP ready! Waiting for first interrupt...");
@@ -362,8 +362,6 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(blSA), pulseBl, CHANGE);
   attachInterrupt(digitalPinToInterrupt(brSA), pulseBr, CHANGE);
 
-  Serial.begin(38400);
-
   Serial.println("waiting for button press");
 
   // Debounce
@@ -378,12 +376,12 @@ void setup() {
 }
 
 void loop() {
-  if (dmpReady && mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) { // get the latest packet 
+  /*if (dmpReady && mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) { // get the latest packet 
     // display Euler angles in degrees
     mpu.dmpGetQuaternion(&q, fifoBuffer);
     mpu.dmpGetGravity(&gravity, &q);
     mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
     Serial.print("yaw:\t");
-    Serial.println(ypr[2] * 180/M_PI);
-  }
+    Serial.println(ypr[0] * 180/M_PI);
+  }*/
 }
