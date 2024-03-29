@@ -6,8 +6,8 @@ void drive(int stps, char dir = 'f');
 // ===== SCRIPT =====
 
 void runScript() {
-  drive(cmToStps(50), 'f');
-  drive(degToStps(90), 'p');
+  drive(cmToStps(100), 'f');
+  //drive(degToStps(90), 'p');
   //drive(degToStps(90), 's');
 }
 
@@ -16,6 +16,7 @@ void runScript() {
 #define motorSpeed 255 // works fine at 200, best at 255
 #define wheelRadius 34 // mm
 #define encoderPpr 540 // complete turn
+#define startDelay 3000 // time to wait after button press for start
 //#define driveDelay 50 // pause after each action, ms
 
 // ===== FRONT MOTOR DRIVER =====
@@ -101,7 +102,7 @@ void pulseBr() { brPos++; }
 
 int cmToStps(float cm) {
   int calc;
-  float circ = (wheelRadius * 3.14159265) / 10; // diameter converted to circ cm
+  float circ = (wheelRadius * M_PI) / 10; // diameter converted to circ cm
   float cmPerStp = circ / encoderPpr;
   float temp = cm / cmPerStp;
   calc = (int) temp; // convert to int (not rounded)
@@ -216,7 +217,7 @@ void drive(int stps, char dir = 'f') {
   Serial.println("going");
 
   while (stps > frPos || stps > flPos || stps > blPos || stps > brPos) {
-    if (flPos >= frPos || blPos >= frPos || brPos >= frPos) {
+    if (flPos >= frPos && blPos >= frPos && brPos >= frPos) {
       analogWrite(fenA, motorSpeed);
     } else {
       analogWrite(fenA, 0);
@@ -363,16 +364,17 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(brSA), pulseBr, CHANGE);
 
   Serial.println("waiting for button press");
+  digitalWrite(LED_BUILTIN, HIGH);
 
   // Debounce
   while (digitalRead(starter) == HIGH) {}
   while (digitalRead(starter) == LOW) {}
 
   Serial.println("button pressed");
-  digitalWrite(LED_BUILTIN, HIGH);
-  delay(3000);
-  runScript();
   digitalWrite(LED_BUILTIN, LOW);
+  delay(startDelay);
+  runScript();
+  digitalWrite(LED_BUILTIN, HIGH);
 }
 
 void loop() {
