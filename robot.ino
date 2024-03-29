@@ -1,12 +1,16 @@
 // ===== DECLARATIONS =====
 
 void drive(int stps, char dir = 'f');
+void rot(int degs);
 
 
 // ===== SCRIPT =====
 
 void runScript() {
-  drive(cmToStps(100), 'f');
+  drive(cmToStps(200), 'r');
+  rot(90);
+  rot(-90);
+  drive(cmToStps(200), 'l');
   //drive(degToStps(90), 'p');
   //drive(degToStps(90), 's');
 }
@@ -16,7 +20,7 @@ void runScript() {
 #define motorSpeed 255 // works fine at 200, best at 255
 #define wheelRadius 34 // mm
 #define encoderPpr 540 // complete turn
-#define startDelay 3000 // time to wait after button press for start
+#define startDelay 10000 // time to wait after button press for start
 //#define driveDelay 50 // pause after each action, ms
 
 // ===== FRONT MOTOR DRIVER =====
@@ -248,6 +252,43 @@ void drive(int stps, char dir = 'f') {
   flPos = 0;
   blPos = 0;
   brPos = 0;
+}
+
+void rot(int degs) {
+  while (!dmpReady || !mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) {}
+  
+  mpu.dmpGetQuaternion(&q, fifoBuffer);
+  mpu.dmpGetGravity(&gravity, &q);
+  mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+  int initialHeading = ypr[0] * 180/M_PI;
+  Serial.println(initialHeading);
+
+  if (degs < 0) {
+  
+    while (ypr[0] * 180/M_PI > initialHeading + degs + 3.5) { // calibrated 3.5
+      drive(degToStps(1), 'p');
+      mpu.dmpGetCurrentFIFOPacket(fifoBuffer);
+      mpu.dmpGetQuaternion(&q, fifoBuffer);
+      mpu.dmpGetGravity(&gravity, &q);
+      mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+      Serial.print("current heading: ");
+      Serial.println(ypr[0] * 180/M_PI);
+    }
+
+  } else {
+
+    while (ypr[0] * 180/M_PI < initialHeading + degs - 1) { // calibrated 1
+      drive(degToStps(1), 's');
+      mpu.dmpGetCurrentFIFOPacket(fifoBuffer);
+      mpu.dmpGetQuaternion(&q, fifoBuffer);
+      mpu.dmpGetGravity(&gravity, &q);
+      mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+      Serial.print("current heading: ");
+      Serial.println(ypr[0] * 180/M_PI);
+    }
+    
+  }
+  Serial.println("done");
 }
 
 void stp() {
