@@ -1,6 +1,7 @@
-#define r 4 // these are not the right numbers
-#define g 5
-#define b 6
+#define r 3
+#define g 4
+#define b 5
+#define reading A0
 
 int concentrations[] = {0, 700, 1400, 2100, 2800, 3500, 4200, 5000}; // customize these ranges
 String lights[] = { "r", "rg", "rb", "g", "gb", "b", "rgb" };
