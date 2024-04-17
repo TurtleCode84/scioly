@@ -136,7 +136,8 @@ void setMtrSpd(int mtrSpd) {
   analogWrite(benB, mtrSpd);
 }
 
-void drive(int stps, char dir = 'f', bool chks = true) {
+void drive(int stps, char dir, bool chks) { // test and make sure default args still work
+  Serial.println(chks ? "checks are enabled" : "checks are disabled"); // for testing
   Serial.print(dir);
   Serial.print(" for ");
   Serial.print(stps);
