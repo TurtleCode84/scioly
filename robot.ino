@@ -1,6 +1,6 @@
 // ===== DECLARATIONS =====
 
-void drive(int stps, char dir = 'f', bool chks = true);
+void drive(int stps, char dir = 'f');
 void rot(int degs);
 
 
@@ -122,10 +122,6 @@ int degToStps(float deg) {
   return calc;
 }
 
-int cmToSecs(float cm) { // based on NEW 1.5v batteries and full speed (255)
-  return 0; // not finished
-}
-
 void setMtrSpd(int mtrSpd) {
   Serial.print("setting all motor speeds to ");
   Serial.println(mtrSpd);
@@ -136,12 +132,11 @@ void setMtrSpd(int mtrSpd) {
   analogWrite(benB, mtrSpd);
 }
 
-void drive(int stps, char dir, bool chks) { // test and make sure default args still work
-  Serial.println(chks ? "checks are enabled" : "checks are disabled"); // for testing
+void drive(int stps, char dir = 'f') {
   Serial.print(dir);
   Serial.print(" for ");
   Serial.print(stps);
-  Serial.println(chks ? " encoder steps" : " seconds");
+  Serial.println(" encoder steps");
   setMtrSpd(0);
   frPos = 0;
   flPos = 0;
@@ -225,45 +220,33 @@ void drive(int stps, char dir, bool chks) { // test and make sure default args s
   Serial.println("direction set");
   Serial.println("going");
 
-  if (chks) {
-  
-    while (stps > frPos || stps > flPos || stps > blPos || stps > brPos) {
-      if (flPos >= frPos && blPos >= frPos && brPos >= frPos) {
-        analogWrite(fenA, motorSpeed);
-      } else {
-        analogWrite(fenA, 0);
-      }
-      if (frPos >= flPos && blPos >= flPos && brPos >= flPos) {
-        analogWrite(fenB, motorSpeed);
-      } else {
-        analogWrite(fenB, 0);
-      }
-      if (frPos >= blPos && flPos >= blPos && brPos >= blPos) {
-        analogWrite(benA, motorSpeed);
-      } else {
-        analogWrite(benA, 0);
-      }
-      if (frPos >= brPos && flPos >= brPos && blPos >= brPos) {
-        analogWrite(benB, motorSpeed);
-      } else {
-        analogWrite(benB, 0);
-      }
-      Serial.print(frPos);
-      Serial.print("\t");
-      Serial.print(flPos);
-      Serial.print("\t");
-      Serial.print(blPos);
-      Serial.print("\t");
-      Serial.println(brPos);
+  while (stps > frPos || stps > flPos || stps > blPos || stps > brPos) {
+    if (flPos >= frPos && blPos >= frPos && brPos >= frPos) {
+      analogWrite(fenA, motorSpeed);
+    } else {
+      analogWrite(fenA, 0);
     }
-
-  } else {
-
-    setMtrSpd(motorSpeed);
-    delay(stps);
-
+    if (frPos >= flPos && blPos >= flPos && brPos >= flPos) {
+      analogWrite(fenB, motorSpeed);
+    } else {
+      analogWrite(fenB, 0);
+    }
+    if (frPos >= blPos && flPos >= blPos && brPos >= blPos) {
+      analogWrite(benA, motorSpeed);
+    } else {
+      analogWrite(benA, 0);
+    }
+    if (frPos >= brPos && flPos >= brPos && blPos >= brPos) {
+      analogWrite(benB, motorSpeed);
+    } else {
+      analogWrite(benB, 0);
+    }
+    Serial.println(frPos);
+    Serial.println(flPos);
+    Serial.println(blPos);
+    Serial.println(brPos);
+    Serial.println();
   }
-
   setMtrSpd(0);
   frPos = 0;
   flPos = 0;
