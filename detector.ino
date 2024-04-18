@@ -30,7 +30,7 @@ void lightLED(int led[], int len) {
         return;
     }
     for (int i=0; i<len; i++) {
-        Serial.print(led[i]);
+        Serial.println(led[i]);
         if (led[i] == r) {
           digitalWrite(r, HIGH);
         } else if (led[i] == g) {
