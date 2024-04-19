@@ -54,7 +54,7 @@ void runScript() {
 #define frSA 19 // yellow
 #define frSB 38 // white
 // Front left wheel
-#define flSA 18 // yellowi
+#define flSA 18 // yellow
 #define flSB 37 // white
 // Back left wheel
 #define blSA 2 // yellow
