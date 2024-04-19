@@ -2,17 +2,20 @@
 
 void drive(int stps, char dir = 'f', bool chks = true);
 void rot(int degs);
+void testDrive();
+#define robotLength 28.25 // cm
+#define robotWidth 22 // cm
 
 
 // ===== SCRIPT =====
 
 void runScript() {
-  drive(cmToStps(200), 'r');
-  rot(90);
-  rot(-90);
-  drive(cmToStps(200), 'l');
-  //drive(degToStps(90), 'p');
-  //drive(degToStps(90), 's');
+  drive(cmToStps(50-((50-robotLength)/2))); // enter grid forwards
+  //drive(cmToStps((50-robotLength)/2), 'b'); // enter grid backwards
+  testDrive();
+  drive(cmToStps(25+((50-robotLength)/2))); // finish on center
+  //rot(90);
+  //rot(-90);
 }
 
 // ===== CONFIGURATIONS =====
@@ -95,13 +98,13 @@ void dmpDataReady() { mpuInterrupt = true; }
 // ===== ENCODERS =====
 
 volatile int frPos = 0;
-volatile int flPos = 0;
 volatile int blPos = 0;
+volatile int flPos = 0;
 volatile int brPos = 0;
 
 void pulseFr() { frPos++; }
-void pulseFl() { flPos++; }
 void pulseBl() { blPos++; }
+void pulseFl() { flPos++; }
 void pulseBr() { brPos++; }
 
 int cmToStps(float cm) {
@@ -123,7 +126,11 @@ int degToStps(float deg) {
 }
 
 int cmToSecs(float cm) { // based on NEW 1.5v batteries and full speed (255)
-  return 0; // not finished
+  int calc;
+  float cmToS = (cm / 11.8) * 1000; // based on cm of 59 for 5 seconds
+  calc = (int) cmToS;
+  
+  return calc;
 }
 
 void setMtrSpd(int mtrSpd) {
@@ -131,8 +138,8 @@ void setMtrSpd(int mtrSpd) {
   Serial.println(mtrSpd);
   
   analogWrite(fenA, mtrSpd);
-  analogWrite(fenB, mtrSpd);
   analogWrite(benA, mtrSpd);
+  analogWrite(fenB, mtrSpd);
   analogWrite(benB, mtrSpd);
 }
 
@@ -144,8 +151,8 @@ void drive(int stps, char dir, bool chks) { // test and make sure default args s
   Serial.println(chks ? " encoder steps" : " seconds");
   setMtrSpd(0);
   frPos = 0;
-  flPos = 0;
   blPos = 0;
+  flPos = 0;
   brPos = 0;
   Serial.println("zeroed");
 
@@ -233,15 +240,15 @@ void drive(int stps, char dir, bool chks) { // test and make sure default args s
       } else {
         analogWrite(fenA, 0);
       }
-      if (frPos >= flPos && blPos >= flPos && brPos >= flPos) {
-        analogWrite(fenB, motorSpeed);
-      } else {
-        analogWrite(fenB, 0);
-      }
       if (frPos >= blPos && flPos >= blPos && brPos >= blPos) {
         analogWrite(benA, motorSpeed);
       } else {
         analogWrite(benA, 0);
+      }
+      if (frPos >= flPos && blPos >= flPos && brPos >= flPos) {
+        analogWrite(fenB, motorSpeed);
+      } else {
+        analogWrite(fenB, 0);
       }
       if (frPos >= brPos && flPos >= brPos && blPos >= brPos) {
         analogWrite(benB, motorSpeed);
@@ -250,9 +257,9 @@ void drive(int stps, char dir, bool chks) { // test and make sure default args s
       }
       Serial.print(frPos);
       Serial.print("\t");
-      Serial.print(flPos);
-      Serial.print("\t");
       Serial.print(blPos);
+      Serial.print("\t");
+      Serial.print(flPos);
       Serial.print("\t");
       Serial.println(brPos);
     }
@@ -266,8 +273,8 @@ void drive(int stps, char dir, bool chks) { // test and make sure default args s
 
   setMtrSpd(0);
   frPos = 0;
-  flPos = 0;
   blPos = 0;
+  flPos = 0;
   brPos = 0;
 }
 
@@ -326,8 +333,16 @@ void stp() {
 void testDrive() {
   Serial.println("starting test drive");
 
-  //drive(2454.55);
+  drive(cmToStps(50), 'l');
   drive(cmToStps(50));
+  drive(cmToStps(50), 'r');
+  drive(cmToStps(50));
+  drive(cmToStps(50), 'r');
+  drive(cmToStps(50));
+  drive(cmToStps(50), 'b');
+  drive(cmToStps(100), 'l');
+  drive(cmToStps(50));
+  drive(degToStps(90), 's');
   
   //stp();
 }
@@ -417,8 +432,8 @@ void setup() {
 
   // Attach interrupts
   attachInterrupt(digitalPinToInterrupt(frSA), pulseFr, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(flSA), pulseFl, CHANGE);
   attachInterrupt(digitalPinToInterrupt(blSA), pulseBl, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(flSA), pulseFl, CHANGE);
   attachInterrupt(digitalPinToInterrupt(brSA), pulseBr, CHANGE);
 
   Serial.println("waiting for button press");
