@@ -3,6 +3,8 @@
 #define b 5
 #define probe A0
 
+#define sampleCount 100
+
 int concentrations[] = {0, 700, 1400, 2100, 2800, 3500, 4200, 5000}; // customize these ranges
 // to skip a color combo, place the same number on either side of the gap, but be careful of the beginning and end thresholds
 struct lights {
@@ -15,7 +17,9 @@ struct lights {
   int light7[3] = {3,4,5}; // rgb
 };
 
-volatile int reading;
+float reading = 0.0; // volts
+int sampleSum = 0;
+unsigned char currentSample = 0;
 
 struct lights data;
 
@@ -45,7 +49,9 @@ void interpretReading() { // 7 possible light combos
     Serial.print("Reading:\t");
     Serial.println(reading);
 
-    if (reading < concentrations[1]) {
+    if (reading == concentrations[0]) {
+        lightLED({}, 0);
+    } else if (reading < concentrations[1]) {
         lightLED(data.light1, sizeof(data.light1)/sizeof(int));
     } else if (reading >= concentrations[1] && reading < concentrations[2]) {
         lightLED(data.light2, sizeof(data.light2)/sizeof(int));
@@ -67,11 +73,22 @@ void setup() {
     pinMode(g, OUTPUT);
     pinMode(b, OUTPUT);
     pinMode(probe, INPUT);
+    pinMode(LED_BUILTIN, OUTPUT);
 
     Serial.begin(38400);
 
-    reading = 3000;
+    delay(1000);
+    digitalWrite(LED_BUILTIN, HIGH);
+
+    while (currentSample < sampleCount) {
+        sampleSum += analogRead(probe);
+        currentSample++;
+        delay(10);
+    }
+    reading = ((float)sampleSum / (float)sampleCount * 5.02) / 1024.0;
+    digitalWrite(LED_BUILTIN, LOW);
     interpretReading();
+
 }
 
 void loop() {
