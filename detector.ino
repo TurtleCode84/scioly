@@ -24,17 +24,17 @@ unsigned char currentSample = 0;
 struct lights data;
 
 void lightLED(int led[], int len) {
-    Serial.print("len:\t");
-    Serial.println(len);
+    //Serial.print("len:\t");
+    //Serial.println(len);
     if (len == 0) {
-        Serial.println("Stopping lights");
+        //Serial.println("Stopping lights");
         digitalWrite(r, LOW);
         digitalWrite(g, LOW);
         digitalWrite(b, LOW);
         return;
     }
     for (int i=0; i<len; i++) {
-        Serial.println(led[i]);
+        //Serial.println(led[i]);
         if (led[i] == r) {
           digitalWrite(r, HIGH);
         } else if (led[i] == g) {
@@ -45,8 +45,20 @@ void lightLED(int led[], int len) {
     }
 }
 
+int voltsToPpm(float vlts) {
+  int calc = (43313 * vlts) - 2153; // based on line of best fit for trial data, outliers removed
+  if (calc < 0) {
+    return 0;
+  } else {
+    return round(calc);
+  }
+}
+
 void interpretReading() { // 7 possible light combos
-    Serial.print("Reading:\t");
+    Serial.print("Voltage:\t");
+    Serial.println(reading);
+    reading = voltsToPpm(reading);
+    Serial.print("PPM:\t");
     Serial.println(reading);
 
     if (reading == concentrations[0]) {
