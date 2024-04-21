@@ -10,9 +10,17 @@ void testDrive();
 // ===== SCRIPT =====
 
 void runScript() {
-  drive(cmToStps(50-((50-robotLength)/2))); // enter grid forwards
+  drive(cmToStps(50-((50-robotLength)/2)) + 1.25); // enter grid forwards
   //drive(cmToStps((50-robotLength)/2), 'b'); // enter grid backwards
-  testDrive();
+  drive(cmToStps(50));
+  drive(degToStps(90), 'p');
+  drive(cmToStps(100));
+  drive(degToStps(90), 'p');
+  drive(cmToStps(50));
+  drive(degToStps(90), 's');
+  drive(cmToStps(50));
+  drive(degToStps(90), 's');
+  drive(cmToStps(100));
   drive(cmToStps(25+((50-robotLength)/2))); // finish on center
   //rot(90);
   //rot(-90);
