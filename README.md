@@ -1,8 +1,12 @@
-# Robot
+# scioly
+
+Code from the 2024 Science Olympiad season.
+
+## Robot Tour
 
 *Coming soon...*
 
-# Detector
+## Detector Building
 
 Materials:
 
