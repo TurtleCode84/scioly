@@ -1,6 +1,6 @@
 # scioly
 
-Code from the 2024 Science Olympiad season.
+Code and designs from the 2024 Science Olympiad season.
 
 ## Robot Tour
 
