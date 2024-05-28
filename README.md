@@ -1,6 +1,6 @@
 # scioly
 
-Code and designs from the 2024 Science Olympiad season, competing in Division C.
+Code and designs from the 2024 Science Olympiad season, Division C.
 
 ## Robot Tour
 
