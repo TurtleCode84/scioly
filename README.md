@@ -4,7 +4,7 @@ Code and designs from the 2024 Science Olympiad season, Division C.
 
 ## Robot Tour
 
-The task for this year's event was to navigate a robot through a course autonomously in a 4x4 grid (each square 50cm in length), avoiding placed barries and entering certain squares ("gate zones") to earn more points, all while completing the course in as close to a specified target time as possible and stopping the robot as close as possible to a specified target point within the grid.
+The task for this year's event was to navigate a robot through a course autonomously in a 4x4 grid (each square 50cm in length), avoiding placed barriers and entering certain squares ("gate zones") to earn more points, all while completing the course in as close to a specified target time as possible and stopping the robot as close as possible to a specified target point within the grid.
 
 The robot described below did very well in its competition.
 
